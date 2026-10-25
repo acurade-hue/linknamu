@@ -1,6 +1,11 @@
 'use client';
 
-import { DarkModeToggle } from '@/components/DarkModeToggle';
+import dynamic from 'next/dynamic';
+
+const DarkModeToggle = dynamic(
+  () => import('@/components/DarkModeToggle').then((mod) => mod.DarkModeToggle),
+  { ssr: false }
+);
 
 export default function Home() {
   return (
