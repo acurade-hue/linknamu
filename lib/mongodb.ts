@@ -1,10 +1,5 @@
 import { MongoClient } from 'mongodb';
 
-if (!process.env.MONGODB_URI) {
-  throw new Error('MONGODB_URI environment variable is not set');
-}
-
-const uri = process.env.MONGODB_URI;
 const options = {};
 
 let cachedClient: MongoClient | null = null;
@@ -13,6 +8,12 @@ let cachedDb: any = null;
 export async function getMongoClient() {
   if (cachedClient) {
     return cachedClient;
+  }
+
+  // 빌드 시점이 아니라 실제 연결 시점에 확인한다
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error('MONGODB_URI environment variable is not set');
   }
 
   try {

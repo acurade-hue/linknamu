@@ -1,6 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb';
 
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
+  try {
+    const username = request.nextUrl.searchParams.get('username');
+
+    if (!username) {
+      return NextResponse.json(
+        { success: false, message: 'Missing username' },
+        { status: 400 }
+      );
+    }
+
+    const db = await getDatabase();
+    const results = await db
+      .collection('clicks')
+      .aggregate([
+        { $match: { username } },
+        { $group: { _id: '$linkId', count: { $sum: 1 } } },
+      ])
+      .toArray();
+
+    const counts: Record<string, number> = {};
+    for (const { _id, count } of results) {
+      counts[_id] = count;
+    }
+
+    return NextResponse.json({ counts }, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching click counts:', error);
+    return NextResponse.json(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { username, linkId } = await request.json();

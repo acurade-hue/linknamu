@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import profileImage from '@/components/profile.jpeg';
 
@@ -21,7 +22,32 @@ const links = [
   { id: 'blog', title: 'Blog', url: 'https://example.com' },
 ];
 
+// 메인 화면 클릭 기록에 쓰는 고정 username
+const HOME_USERNAME = 'home';
+
 export default function Home() {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    fetch(`/api/clicks?username=${HOME_USERNAME}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => setCounts(data.counts))
+      .catch((error) => console.error('Failed to load click counts:', error));
+  }, []);
+
+  const handleClick = (linkId: string) => {
+    setCounts((prev) => ({ ...prev, [linkId]: (prev[linkId] ?? 0) + 1 }));
+    fetch('/api/clicks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: HOME_USERNAME, linkId }),
+      keepalive: true,
+    }).catch((error) => console.error('Failed to track click:', error));
+  };
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#fff8f1] to-[#fde3d0] px-6 py-16 transition-colors dark:from-gray-900 dark:to-gray-900">
       <DarkModeToggle />
@@ -50,9 +76,13 @@ export default function Home() {
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block rounded-2xl border border-white/70 bg-white/40 px-6 py-4 text-center text-base font-semibold text-stone-800 shadow-[0_8px_24px_-12px_rgba(120,53,15,0.25)] backdrop-blur-md transition-colors duration-200 hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:text-gray-100 dark:hover:bg-white/10"
+              onClick={() => handleClick(link.id)}
+              className="relative block rounded-2xl border border-white/70 bg-white/40 px-6 py-4 text-center text-base font-semibold text-stone-800 shadow-[0_8px_24px_-12px_rgba(120,53,15,0.25)] backdrop-blur-md transition-colors duration-200 hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:text-gray-100 dark:hover:bg-white/10"
             >
               {link.title}
+              <span className="absolute right-6 top-1/2 -translate-y-1/2 text-xs font-normal tabular-nums text-stone-500 dark:text-gray-400">
+                {counts[link.id] ?? 0}회
+              </span>
             </a>
           ))}
         </div>
